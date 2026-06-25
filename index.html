@@ -39,6 +39,14 @@
   header .title{font-size:17px;font-weight:600;letter-spacing:-0.02em;}
   header .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:2px;}
   header .org{position:absolute;right:22px;font-size:12px;color:var(--muted);font-weight:450;text-align:right;line-height:1.3;}
+  /* 移动端下拉导航（桌面隐藏） */
+  .mobilenav{display:none;position:sticky;top:52px;z-index:40;padding:10px 14px;
+    background:rgba(251,251,253,.85);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.07);}
+  .mobilenav select{width:100%;padding:13px 40px 13px 16px;font-size:16px;font-family:inherit;
+    border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-weight:600;
+    -webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23bf1a2f' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;}
   .wrap{display:flex;max-width:1280px;margin:0 auto;}
   /* ---------- 侧栏 ---------- */
   nav{
@@ -109,11 +117,69 @@
   .seg button{flex:1;border:0;background:transparent;padding:9px 8px;font-size:13px;cursor:pointer;color:var(--muted2);border-radius:8px;font-family:inherit;font-weight:500;transition:all .18s ease;letter-spacing:-0.01em;}
   .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600;}
   footer{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 20px;max-width:1280px;margin:0 auto;border-top:1px solid var(--line);}
+  /* ---------- 移动端：产品主页 + 返回栏（桌面隐藏） ---------- */
+  #home{display:none;}
+  #backbar{display:none;}
+  .home-hd{padding:24px 18px 4px;}
+  .home-hd .eyebrow{margin-bottom:4px;}
+  .home-hd h1{margin:0;font-size:27px;font-weight:600;letter-spacing:-0.03em;}
+  .home-hd p{margin:6px 0 0;color:var(--muted2);font-size:14px;}
+  .home-grp{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding:22px 20px 10px;}
+  .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px;}
+  .pcard{background:var(--card);border:1px solid rgba(0,0,0,.05);border-radius:16px;padding:16px 15px;
+    box-shadow:var(--shadow-sm);cursor:pointer;transition:transform .12s ease,box-shadow .2s ease;
+    display:flex;flex-direction:column;gap:6px;min-height:92px;}
+  .pcard:active{transform:scale(.97);}
+  .pcard .nm{font-size:16.5px;font-weight:600;letter-spacing:-0.02em;display:flex;align-items:center;justify-content:space-between;}
+  .pcard .nm .arrow{color:var(--accent);font-size:15px;font-weight:400;opacity:.6;}
+  .pcard .tg{font-size:12.5px;color:var(--muted);line-height:1.45;}
+  #backbar{align-items:center;gap:6px;position:sticky;top:0;z-index:45;height:48px;padding:0 14px;
+    background:rgba(251,251,253,.85);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid rgba(0,0,0,.07);
+    color:var(--accent);font-size:16px;font-weight:500;cursor:pointer;}
+  #backbar .chev{font-size:22px;line-height:1;margin-top:-2px;}
   @media (max-width:880px){
+    header{height:48px;}
+    header .title{font-size:16px;}
+    header .org{display:none;}
+    .mobilenav{display:none;}
+    .wrap{flex-direction:column;display:block;}
     nav{display:none;}
-    main{padding:28px 20px 60px;}
-    h2{font-size:30px;}
-    .card.inputs{width:100%;}
+    /* 首页 / 详情 切换 */
+    body.m-home #home{display:block;}
+    body.m-home .wrap{display:none;}
+    body.m-home footer{display:none;}
+    body.m-detail #home{display:none;}
+    body.m-detail #backbar{display:flex;}
+    main{padding:16px 16px 56px;}
+    .eyebrow{font-size:12px;margin-bottom:4px;}
+    h2{font-size:26px;margin-bottom:10px;}
+    .desc{font-size:14px;margin-bottom:22px;line-height:1.6;}
+    .cards{gap:16px;display:block;}
+    .card{padding:18px 18px;margin-bottom:16px;border-radius:16px;}
+    .card.inputs,.card.outputs{width:100%;min-width:0;}
+    .card>h3{margin-bottom:16px;}
+    /* iOS 防止聚焦缩放：输入字号≥16px */
+    .fld input,.fld select{font-size:16px;padding:12px 14px;}
+    .fld label{font-size:13px;}
+    .row2{gap:10px;}
+    .out{padding:12px 0;}
+    .out .k{font-size:13.5px;}
+    .out .v{font-size:17px;}
+    .out.hi .v{font-size:26px;}
+    .out.hi2 .v{font-size:21px;}
+    .out.hi,.out.hi2{padding:16px;}
+    .seg button{padding:11px 6px;font-size:13px;}
+    .formula{font-size:11.5px;line-height:1.8;}
+    /* 表格横向滚动，避免溢出 */
+    .card>table.ref{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;}
+    table.ref td input{font-size:15px;}
+    footer{padding:24px 18px;font-size:12px;}
+  }
+  @media (max-width:380px){
+    h2{font-size:23px;}
+    .out.hi .v{font-size:23px;}
+    .out .v{font-size:16px;}
   }
 </style>
 </head>
@@ -122,6 +188,8 @@
   <div class="title"><span class="dot"></span>外汇衍生品报价测算工具</div>
   <div class="org">民生银行深圳分行 · 交易银行部<br>国际业务团队</div>
 </header>
+<div id="backbar" onclick="goHome()"><span class="chev">‹</span> 全部产品</div>
+<div id="home"></div>
 <div class="wrap">
   <nav id="nav"></nav>
   <main id="main"></main>
@@ -141,24 +209,24 @@ function weekday(dstr){ const d=parseLocal(dstr); return d? d.getDay()+1 : 0; } 
 /* ============ 产品定义 ============ */
 const PRODUCTS = [
  {grp:'存款 + 期权', items:[
-   {id:'huizengli', name:'汇增利'},
-   {id:'swapdep', name:'美元掉期套利'},
+   {id:'huizengli', name:'汇增利', tag:'存款 + 卖出看涨'},
+   {id:'swapdep', name:'美元掉期套利', tag:'即期 + 定存 + 远期'},
  ]},
  {grp:'掉期', items:[
-   {id:'swap', name:'普通掉期'},
-   {id:'eswap', name:'加强型掉期'},
+   {id:'swap', name:'普通掉期', tag:'近端结汇 远端购汇'},
+   {id:'eswap', name:'加强型掉期', tag:'掉期 + 期权补贴'},
  ]},
  {grp:'远期', items:[
-   {id:'eforward', name:'加强型远期'},
-   {id:'espot', name:'加强型即期'},
-   {id:'rangefwd', name:'区间远期'},
-   {id:'dccfwd', name:'双货币远期'},
-   {id:'jiejieying', name:'节节赢'},
-   {id:'ruyihui', name:'如意汇'},
+   {id:'eforward', name:'加强型远期', tag:'优惠结汇 + 比例挂单'},
+   {id:'espot', name:'加强型即期', tag:'优惠即期 + 挂单'},
+   {id:'rangefwd', name:'区间远期', tag:'区间内随市结汇'},
+   {id:'dccfwd', name:'双货币远期', tag:'远结 + 卖 EUR/USD 看涨'},
+   {id:'jiejieying', name:'节节赢', tag:'比例 2 : 1 远期'},
+   {id:'ruyihui', name:'如意汇', tag:'分档优惠 · 一元购'},
  ]},
  {grp:'期权 / 方案', items:[
-   {id:'singlecall', name:'单一买权'},
-   {id:'eursol', name:'欧元方案'},
+   {id:'singlecall', name:'单一买权', tag:'买入看涨期权'},
+   {id:'eursol', name:'欧元方案', tag:'多结构方案对比'},
  ]},
 ];
 
@@ -605,10 +673,20 @@ function sdPip(){ run(); }
 /* ============ 渲染与绑定 ============ */
 let current='huizengli';
 function buildNav(){
-  const nav=$('nav'); let h='';
-  PRODUCTS.forEach(g=>{ h+=`<div class="grp">${g.grp}</div>`;
-    g.items.forEach(it=> h+=`<button data-id="${it.id}" onclick="select('${it.id}')">${it.name}</button>`); });
+  const nav=$('nav'); let h='', home='';
+  PRODUCTS.forEach(g=>{
+    h+=`<div class="grp">${g.grp}</div>`;
+    home+=`<div class="home-grp">${g.grp}</div><div class="home-grid">`;
+    g.items.forEach(it=>{
+      h+=`<button data-id="${it.id}" onclick="select('${it.id}')">${it.name}</button>`;
+      home+=`<div class="pcard" onclick="goDetail('${it.id}')"><div class="nm">${it.name}<span class="arrow">›</span></div><div class="tg">${it.tag||''}</div></div>`;
+    });
+    home+=`</div>`;
+  });
   nav.innerHTML=h;
+  $('home').innerHTML=
+    `<div class="home-hd"><p class="eyebrow">外汇衍生品报价测算</p><h1>选择产品</h1><p>点选任一产品进入测算</p></div>`+home
+    +`<div style="text-align:center;color:var(--muted);font-size:12px;padding:30px 24px 40px;line-height:1.6;">民生银行深圳分行 · 交易银行部 国际业务团队<br>本工具仅供内部测算参考，不构成对客报价</div>`;
   const main=$('main');
   main.innerHTML=Object.keys(PANELS).map(k=>`<div class="panel" id="p_${k}">${PANELS[k]}</div>`).join('');
 }
@@ -616,11 +694,14 @@ function select(id){
   current=id;
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='p_'+id));
-  window.scrollTo({top:0,behavior:'smooth'});
   run();
 }
+/* 移动端：进入详情 / 返回主页 */
+function goDetail(id){ select(id); document.body.classList.remove('m-home'); document.body.classList.add('m-detail'); window.scrollTo(0,0); }
+function goHome(){ document.body.classList.remove('m-detail'); document.body.classList.add('m-home'); window.scrollTo(0,0); }
 function run(){ if(CALC[current]) try{CALC[current]();}catch(e){console.warn(e);} }
 document.addEventListener('input',run);
+document.body.classList.add('m-home');
 buildNav();
 select('huizengli');
 </script>
