@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外汇衍生品报价测算工具</title>
+<style>
+  :root{
+    --bg:#fbfbfd;
+    --card:#ffffff;
+    --ink:#1d1d1f;
+    --muted:#86868b;
+    --muted2:#6e6e73;
+    --line:#e5e5ea;
+    --fill:#f5f5f7;
+    --accent:#bf1a2f;       /* 民生红，作为唯一点缀色 */
+    --accent-soft:#fbeef0;
+    --blue:#0071e3;
+    --good:#1d8a4e;
+    --good-soft:#eaf6ef;
+    --radius:18px;
+    --shadow:0 6px 30px rgba(0,0,0,.06);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.05);
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;}
+  body{
+    font-family:"SF Pro Display","SF Pro Text",-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;letter-spacing:-0.01em;
+  }
+  /* ---------- 顶栏 ---------- */
+  header{
+    position:sticky;top:0;z-index:50;height:52px;
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    background:rgba(251,251,253,.72);backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    border-bottom:1px solid rgba(0,0,0,.07);
+  }
+  header .title{font-size:17px;font-weight:600;letter-spacing:-0.02em;}
+  header .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);display:inline-block;margin-right:2px;}
+  header .org{position:absolute;right:22px;font-size:12px;color:var(--muted);font-weight:450;text-align:right;line-height:1.3;}
+  .wrap{display:flex;max-width:1280px;margin:0 auto;}
+  /* ---------- 侧栏 ---------- */
+  nav{
+    width:236px;flex-shrink:0;padding:26px 14px 60px;
+    position:sticky;top:52px;align-self:flex-start;height:calc(100vh - 52px);overflow-y:auto;
+  }
+  nav .grp{font-size:11px;color:var(--muted);padding:18px 14px 7px;letter-spacing:.04em;font-weight:600;text-transform:uppercase;}
+  nav .grp:first-child{padding-top:0;}
+  nav button{
+    display:flex;align-items:center;width:100%;text-align:left;border:0;background:none;
+    padding:9px 14px;margin:1px 0;font-size:14.5px;color:var(--ink);cursor:pointer;border-radius:10px;
+    transition:background .15s ease,color .15s ease;letter-spacing:-0.01em;font-weight:450;
+  }
+  nav button:hover{background:rgba(0,0,0,.04);}
+  nav button.active{background:var(--accent-soft);color:var(--accent);font-weight:600;}
+  /* ---------- 主区 ---------- */
+  main{flex:1;padding:40px 48px 80px;min-width:0;}
+  .panel{display:none;}
+  .panel.active{display:block;animation:rise .4s cubic-bezier(.2,.7,.2,1);}
+  @keyframes rise{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .eyebrow{color:var(--accent);font-size:13px;font-weight:600;letter-spacing:0;margin:0 0 6px;}
+  h2{margin:0 0 12px;font-size:38px;font-weight:600;letter-spacing:-0.03em;line-height:1.08;}
+  .desc{color:var(--muted2);font-size:15.5px;margin:0 0 34px;line-height:1.65;max-width:760px;font-weight:400;}
+  .desc b{color:var(--ink);font-weight:600;}
+  /* ---------- 卡片 ---------- */
+  .cards{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+  .card{background:var(--card);border-radius:var(--radius);padding:26px 28px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.04);}
+  .card.inputs{width:400px;}
+  .card.outputs{flex:1;min-width:320px;}
+  .card>h3{margin:0 0 20px;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.03em;text-transform:uppercase;}
+  /* ---------- 输入 ---------- */
+  .fld{margin-bottom:16px;}
+  .fld label{display:block;font-size:13px;color:var(--muted2);margin-bottom:7px;font-weight:450;}
+  .fld input,.fld select{
+    width:100%;padding:11px 14px;border:1px solid transparent;border-radius:12px;
+    font-size:15px;background:var(--fill);color:var(--ink);transition:all .18s ease;
+    font-family:inherit;-webkit-appearance:none;appearance:none;
+  }
+  .fld select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2386868b' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:34px;}
+  .fld input:focus,.fld select:focus{outline:none;background:#fff;border-color:var(--blue);box-shadow:0 0 0 4px rgba(0,113,227,.15);}
+  .row2{display:flex;gap:12px;}
+  .row2 .fld{flex:1;}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4;}
+  /* ---------- 输出 ---------- */
+  .out{display:flex;justify-content:space-between;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);}
+  .out:last-child{border-bottom:0;}
+  .out .k{color:var(--muted2);font-size:14px;font-weight:450;}
+  .out .v{font-weight:500;font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;}
+  .out.hi,.out.hi2{border:0;border-radius:14px;margin:12px 0 0;padding:18px 20px;}
+  .out.hi{background:var(--good-soft);}
+  .out.hi .k{color:var(--good);font-weight:600;font-size:14px;}
+  .out.hi .v{color:var(--good);font-size:30px;font-weight:600;}
+  .out.hi2{background:var(--accent-soft);}
+  .out.hi2 .k{color:var(--accent);font-weight:600;font-size:14px;}
+  .out.hi2 .v{color:var(--accent);font-size:24px;font-weight:600;}
+  /* ---------- 其它 ---------- */
+  .note{background:var(--fill);border-radius:14px;padding:16px 18px;font-size:13.5px;color:var(--muted2);line-height:1.7;margin-top:20px;}
+  .note b{color:var(--ink);font-weight:600;}
+  .formula{font-family:"SF Mono",ui-monospace,Consolas,monospace;font-size:12px;color:var(--muted);margin-top:18px;line-height:1.85;background:var(--fill);border-radius:12px;padding:14px 16px;}
+  .pill{display:inline-block;background:var(--fill);color:var(--muted2);font-size:13px;padding:5px 13px;border-radius:980px;margin-left:4px;font-weight:500;vertical-align:middle;letter-spacing:-0.01em;}
+  table.ref{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;margin-top:8px;}
+  table.ref th,table.ref td{padding:12px 12px;text-align:center;border-bottom:1px solid var(--line);}
+  table.ref th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em;}
+  table.ref td input{width:96px;border:1px solid transparent;border-radius:9px;padding:8px;text-align:center;font-size:14px;background:var(--fill);font-family:inherit;}
+  table.ref td input:focus{outline:none;background:#fff;border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.15);}
+  /* ---------- 分段控件 ---------- */
+  .seg{display:flex;background:var(--fill);border-radius:11px;padding:3px;gap:3px;}
+  .seg button{flex:1;border:0;background:transparent;padding:9px 8px;font-size:13px;cursor:pointer;color:var(--muted2);border-radius:8px;font-family:inherit;font-weight:500;transition:all .18s ease;letter-spacing:-0.01em;}
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600;}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:30px 20px;max-width:1280px;margin:0 auto;border-top:1px solid var(--line);}
+  @media (max-width:880px){
+    nav{display:none;}
+    main{padding:28px 20px 60px;}
+    h2{font-size:30px;}
+    .card.inputs{width:100%;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="title"><span class="dot"></span>外汇衍生品报价测算工具</div>
+  <div class="org">民生银行深圳分行 · 交易银行部<br>国际业务团队</div>
+</header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<footer>本工具仅供团队内部测算参考，结果不构成对客报价；最终成交价以系统及交易确认为准。</footer>
+
+<script>
+/* ============ 工具函数 ============ */
+const $ = id => document.getElementById(id);
+const num = id => { const el=$(id); if(!el) return 0; const v = parseFloat(el.value); return isNaN(v)?0:v; };
+const fmt = (x,d=4) => (isFinite(x)? Number(x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}) : '—');
+const pct = (x,d=4) => (isFinite(x)? (x*100).toFixed(d)+'%' : '—');
+const parseLocal = s => { if(!s) return null; const p=s.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]); };
+const days = (a,b) => { const d1=parseLocal(a),d2=parseLocal(b); if(!d1||!d2) return 0; return Math.round((d2-d1)/86400000); };
+function weekday(dstr){ const d=parseLocal(dstr); return d? d.getDay()+1 : 0; } // WEEKDAY(,1): Sun=1..Sat=7
+
+/* ============ 产品定义 ============ */
+const PRODUCTS = [
+ {grp:'存款 + 期权', items:[
+   {id:'huizengli', name:'汇增利'},
+   {id:'swapdep', name:'美元掉期套利'},
+ ]},
+ {grp:'掉期', items:[
+   {id:'swap', name:'普通掉期'},
+   {id:'eswap', name:'加强型掉期'},
+ ]},
+ {grp:'远期', items:[
+   {id:'eforward', name:'加强型远期'},
+   {id:'espot', name:'加强型即期'},
+   {id:'rangefwd', name:'区间远期'},
+   {id:'dccfwd', name:'双货币远期'},
+   {id:'jiejieying', name:'节节赢'},
+   {id:'ruyihui', name:'如意汇'},
+ ]},
+ {grp:'期权 / 方案', items:[
+   {id:'singlecall', name:'单一买权'},
+   {id:'eursol', name:'欧元方案'},
+ ]},
+];
+
+/* ============ 各产品面板 HTML ============ */
+const PANELS = {};
+
+PANELS.huizengli = `
+<p class="eyebrow">存款 + 期权</p>
+<h2>汇增利</h2>
+<p class="desc">客户将外币（美元 / 欧元）做定期存款，同时卖出一个看涨期权获得期权费补贴。<b>综合收益 = 存款利息 + 期权费折算</b>。到期若汇率未达执行价，客户保留本金及全部收益；若达到执行价，则按执行价结汇。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>存款币种</label>
+      <select id="hz_ccy"><option value="USD">美元 USD</option><option value="EUR">欧元 EUR</option></select></div>
+    <div class="fld"><label>存款利率（年化）</label><input id="hz_rate" type="number" step="0.0001" value="0.0431"><div class="hint">如 4.31% 输入 0.0431</div></div>
+    <div class="row2">
+      <div class="fld"><label>起息日</label><input id="hz_start" type="date" value="2025-03-20"></div>
+      <div class="fld"><label>到期日</label><input id="hz_end" type="date" value="2025-03-27"></div>
+    </div>
+    <div class="fld"><label>存款本金（外币）</label><input id="hz_prin" type="number" value="3000000"></div>
+    <div class="fld"><label>卖出期权执行汇率</label><input id="hz_strike" type="number" step="0.0001" value="7.27"></div>
+    <div class="fld"><label>期权费输入方式</label>
+      <div class="seg" id="hz_seg">
+        <button class="on" data-m="pips" onclick="hzMode('pips')">按点数</button>
+        <button data-m="amt" onclick="hzMode('amt')">按总金额</button>
+      </div></div>
+    <div class="fld" id="hz_pipsbox"><label>期权费点数（CNY / 外币）</label><input id="hz_pips" type="number" step="0.0001" value="0.0035"><div class="hint">期权费 = 本金 × 点数（如 0.0035 = 35 pips）</div></div>
+    <div class="fld" id="hz_amtbox" style="display:none"><label>期权费总额（CNY）</label><input id="hz_amt" type="number" value="10500"></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out"><span class="k">天数</span><span class="v" id="hz_days">—</span></div>
+    <div class="out"><span class="k">存款利息（外币）</span><span class="v" id="hz_int">—</span></div>
+    <div class="out"><span class="k">期权费（CNY）</span><span class="v" id="hz_premc">—</span></div>
+    <div class="out"><span class="k">期权费折外币</span><span class="v" id="hz_premf">—</span></div>
+    <div class="out hi2"><span class="k">收益合计（外币）</span><span class="v" id="hz_total">—</span></div>
+    <div class="out hi"><span class="k">综合年化收益率</span><span class="v" id="hz_yield">—</span></div>
+    <div class="formula">利息 = 本金 × 天数 × 利率 / 360<br>期权费折外币 = 期权费(CNY) / 执行汇率<br>收益合计 = 利息 + 期权费折外币<br>综合收益率 = 收益合计 / 本金 / 天数 × 360</div>
+  </div>
+</div>`;
+
+PANELS.swapdep = `
+<p class="eyebrow">存款 + 期权</p>
+<h2>美元掉期套利</h2>
+<p class="desc">以即期买入外币、做外币定期存款赚取利息，同时叙做远期把本息换回美元锁定汇率。适用 <b>美日掉期、美港掉期</b> 等。综合收益率反映美元口径的实际年化回报。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>货币对</label>
+      <select id="sd_pair" onchange="sdPip()">
+        <option value="100">USD / JPY（点位因子 100）</option>
+        <option value="10000">USD / HKD（点位因子 10000）</option>
+        <option value="10000">其他（点位因子 10000）</option>
+      </select></div>
+    <div class="row2">
+      <div class="fld"><label>即期汇率</label><input id="sd_spot" type="number" step="0.0001" value="7.8317"></div>
+      <div class="fld"><label>掉期点</label><input id="sd_pts" type="number" value="-809"></div>
+    </div>
+    <div class="fld"><label>远期汇率（自动，可手动覆盖）</label><input id="sd_fwd" type="number" step="0.0001" value="7.7508"><div class="hint">留空则按 即期 + 掉期点 / 因子 计算</div></div>
+    <div class="fld"><label>外币定存利率（年化）</label><input id="sd_rate" type="number" step="0.0001" value="0.029012"></div>
+    <div class="row2">
+      <div class="fld"><label>起息日</label><input id="sd_start" type="date" value="2026-04-08"></div>
+      <div class="fld"><label>到期日</label><input id="sd_end" type="date" value="2027-04-09"></div>
+    </div>
+    <div class="fld"><label>美元本金</label><input id="sd_prin" type="number" value="1000000"></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out"><span class="k">远期汇率</span><span class="v" id="sd_ofwd">—</span></div>
+    <div class="out"><span class="k">天数</span><span class="v" id="sd_days">—</span></div>
+    <div class="out"><span class="k">外币本金</span><span class="v" id="sd_fp">—</span></div>
+    <div class="out"><span class="k">外币利息</span><span class="v" id="sd_fi">—</span></div>
+    <div class="out"><span class="k">外币本息</span><span class="v" id="sd_ft">—</span></div>
+    <div class="out hi2"><span class="k">美元（最终）</span><span class="v" id="sd_final">—</span></div>
+    <div class="out hi"><span class="k">综合年化收益率</span><span class="v" id="sd_yield">—</span></div>
+    <div class="formula">远期 = 即期 + 掉期点 / 因子（JPY 因子 100，多数货币 10000）<br>外币本金 = 美元 × 即期 ; 利息 = 外币本金 × 利率 × 天数 / 360<br>美元最终 = 外币本息 / 远期<br>综合收益率 = (美元最终 − 美元本金) / 美元本金 × 360 / 天数</div>
+  </div>
+</div>`;
+
+PANELS.swap = `
+<p class="eyebrow">掉期</p>
+<h2>普通掉期</h2>
+<p class="desc">USD / CNY 掉期：近端结汇、远端按掉期点购回。年化收益率反映客户持汇套利的等效年化。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>近端结汇价</label><input id="sw_near" type="number" step="0.0001" value="6.7788"></div>
+    <div class="fld"><label>掉期点（一般为负）</label><input id="sw_pts" type="number" value="-136"></div>
+    <div class="row2">
+      <div class="fld"><label>起息日</label><input id="sw_start" type="date" value="2026-06-09"></div>
+      <div class="fld"><label>到期日</label><input id="sw_end" type="date" value="2026-07-09"></div>
+    </div>
+    <div class="fld"><label>或直接输入天数（覆盖日期）</label><input id="sw_days" type="number" placeholder="留空则按日期计算"></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out"><span class="k">天数</span><span class="v" id="sw_odays">—</span></div>
+    <div class="out hi2"><span class="k">远端购汇价</span><span class="v" id="sw_far">—</span></div>
+    <div class="out hi"><span class="k">年化收益率</span><span class="v" id="sw_yield">—</span></div>
+    <div class="formula">远端购汇价 = 近端结汇价 + 掉期点 / 10000<br>年化收益率 = (−掉期点) / 近端价 / 10000 / 天数 × 360</div>
+  </div>
+</div>`;
+
+PANELS.eswap = `
+<p class="eyebrow">掉期</p>
+<h2>加强型掉期</h2>
+<p class="desc">在普通掉期基础上叠加卖出看涨期权，用期权费补贴近端结汇价。<b>情形①</b>：到期汇率未超行权价，按掉期远端价购回；<b>情形②</b>：到期汇率超过行权价，相当于无交易，近端结汇价被直接优化提升。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>近端结汇价</label><input id="es_near" type="number" step="0.0001" value="6.775"></div>
+    <div class="fld"><label>掉期点（一般为负）</label><input id="es_pts" type="number" value="-31"></div>
+    <div class="fld"><label>补贴期权费点数（pips）</label><input id="es_sub" type="number" value="65"></div>
+    <div class="fld"><label>期权行权价格</label><input id="es_strike" type="number" step="0.0001" value="6.7719"></div>
+    <div class="row2">
+      <div class="fld"><label>天数</label><input id="es_days" type="number" value="9"></div>
+      <div class="fld"><label>本金（美元）</label><input id="es_prin" type="number" value="1000000"></div>
+    </div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out"><span class="k">近端优化后价格</span><span class="v" id="es_opt">—</span></div>
+    <div class="out"><span class="k">远端购汇价</span><span class="v" id="es_far">—</span></div>
+    <div class="out"><span class="k">掉期年化收益</span><span class="v" id="es_swy">—</span></div>
+    <div class="out"><span class="k">期权年化收益</span><span class="v" id="es_opy">—</span></div>
+    <div class="out hi"><span class="k">最高年化收益率</span><span class="v" id="es_max">—</span></div>
+    <div class="out hi2"><span class="k">情形① 收益合计</span><span class="v" id="es_p1">—</span></div>
+    <div class="out"><span class="k">情形① 年化收益率</span><span class="v" id="es_p1y">—</span></div>
+    <div class="out hi2"><span class="k">情形② 收益合计</span><span class="v" id="es_p2">—</span></div>
+    <div class="out"><span class="k">情形② 年化收益率</span><span class="v" id="es_p2y">—</span></div>
+    <div class="formula">近端优化价 = 近端 + 补贴pips/10000 ; 远端购汇价 = 近端 + 掉期点/10000<br>掉期年化 = (−掉期点)/近端/10000/天数×360 ; 期权年化 = 补贴pips/10000/行权价/天数×360<br>情形① 收益 = 本金×(优化价 − 远端价) ; 情形② 收益 = 本金×(优化价 − 近端价)</div>
+  </div>
+</div>`;
+
+PANELS.eforward = `
+<p class="eyebrow">远期</p>
+<h2>加强型远期</h2>
+<p class="desc">近端以优于远期的优惠价结汇；远端到期日若市场汇率高于挂单价，则以挂单价结汇（通常为更大本金），否则不结汇。优惠来源于卖出远端期权。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>远期参考价</label><input id="ef_ref" type="number" step="0.0001" value="6.766"></div>
+    <div class="fld"><label>加点方式</label>
+      <div class="seg" id="ef_seg">
+        <button class="on" data-m="price" onclick="efMode('price')">按价格加点</button>
+        <button data-m="pips" onclick="efMode('pips')">按 pips</button>
+      </div></div>
+    <div class="fld" id="ef_pricebox"><label>优化加点（价格，如 0.0316）</label><input id="ef_add" type="number" step="0.0001" value="0.0316"></div>
+    <div class="fld" id="ef_pipsbox" style="display:none"><label>优于远期 pips</label><input id="ef_pips" type="number" value="316"></div>
+    <div class="fld"><label>远端挂单价</label><input id="ef_far" type="number" step="0.0001" value="6.751"></div>
+    <div class="row2">
+      <div class="fld"><label>近端本金（万）</label><input id="ef_p1" type="number" value="1500"></div>
+      <div class="fld"><label>远端本金（万）</label><input id="ef_p2" type="number" value="2250"></div>
+    </div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out hi2"><span class="k">近端优惠结汇价</span><span class="v" id="ef_opt">—</span></div>
+    <div class="out hi"><span class="k">优于远期（pips）</span><span class="v" id="ef_better">—</span></div>
+    <div class="note"><b>到期说明：</b>近端以优惠价结汇 <span id="ef_d1">—</span> 万美元；远端若市场汇率 ≥ 挂单价 <span id="ef_d2">—</span>，则以挂单价结汇 <span id="ef_d3">—</span> 万美元，否则不结汇。</div>
+    <div class="formula">优惠价 = 远期参考 + 加点 ; 优于远期(pips) = (优惠价 − 远期参考) × 10000</div>
+  </div>
+</div>`;
+
+PANELS.espot = `
+<p class="eyebrow">远期</p>
+<h2>加强型即期</h2>
+<p class="desc">近端以优于即期的价格结汇（EUR / CNY 等），补贴来自卖出远端期权。可选两种补贴方式：①提升近端结汇价（T+3 交割）；②近端按即期价、另拿期权费补贴。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>即期价格</label><input id="sp_spot" type="number" step="0.0001" value="8.0178"></div>
+    <div class="fld"><label>补贴点数（总行报价 pips）</label><input id="sp_pips" type="number" value="133"></div>
+    <div class="fld"><label>每 100 万 EUR 的基数</label><input id="sp_base" type="number" value="100"><div class="hint">补贴金额 = 基数 × pips（原表为每 100 万对应）</div></div>
+    <div class="fld"><label>远端挂单价</label><input id="sp_far" type="number" step="0.0001" value="8.06"></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out hi2"><span class="k">近端优惠价</span><span class="v" id="sp_opt">—</span></div>
+    <div class="out"><span class="k">优于即期（pips）</span><span class="v" id="sp_better">—</span></div>
+    <div class="out hi"><span class="k">每 100 万 EUR 补贴金额（CNY）</span><span class="v" id="sp_amt">—</span></div>
+    <div class="formula">优惠价 = 即期 + 补贴pips/10000<br>每 100 万 EUR 补贴金额 = 基数 × 补贴pips</div>
+  </div>
+</div>`;
+
+PANELS.rangefwd = `
+<p class="eyebrow">远期</p>
+<h2>区间远期</h2>
+<p class="desc">设定一个汇率区间。到期日：即期落在区间内则按即期结汇；低于下限按下限结汇；高于上限按上限结汇。客户以放弃极端收益换取区间内更优的确定性。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>期限</label><input id="rg_term" type="text" value="3M"></div>
+    <div class="row2">
+      <div class="fld"><label>区间下限</label><input id="rg_low" type="number" step="0.0001" value="6.70"></div>
+      <div class="fld"><label>区间上限</label><input id="rg_high" type="number" step="0.0001" value="6.95"></div>
+    </div>
+    <div class="fld"><label>远期参考价</label><input id="rg_ref" type="number" step="0.0001" value="6.8432"></div>
+    <div class="fld"><label>测算到期即期汇率（情景）</label><input id="rg_spot" type="number" step="0.0001" value="6.88"></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out"><span class="k">区间宽度（pips）</span><span class="v" id="rg_width">—</span></div>
+    <div class="out"><span class="k">远期相对区间</span><span class="v" id="rg_pos">—</span></div>
+    <div class="out hi"><span class="k">该情景结汇价</span><span class="v" id="rg_settle">—</span></div>
+    <div class="formula">结汇价 = MIN( MAX(到期即期, 下限), 上限 )</div>
+  </div>
+</div>`;
+
+PANELS.dccfwd = `
+<p class="eyebrow">远期</p>
+<h2>双货币远期</h2>
+<p class="desc">在 USD / CNY 远期结汇基础上，叠加卖出 EUR / USD 看涨期权以改善远结价。改善幅度取决于期权点数与 EUR / USD 行权价。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>USD 远结参考价</label><input id="dc_ref" type="number" step="0.0001" value="6.8698"></div>
+    <div class="fld"><label>期权点数</label><input id="dc_pts" type="number" value="191"></div>
+    <div class="fld"><label>卖出 EUR / USD 看涨行权价</label><input id="dc_strike" type="number" step="0.0001" value="1.15"></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out hi2"><span class="k">改善后远结价</span><span class="v" id="dc_opt">—</span></div>
+    <div class="out hi"><span class="k">改善幅度（pips）</span><span class="v" id="dc_better">—</span></div>
+    <div class="formula">改善后远结价 = ROUNDDOWN( 参考价 + 期权点 × 参考价 / EURUSD行权价 / 10000 , 4 )</div>
+  </div>
+</div>`;
+
+PANELS.jiejieying = `
+<p class="eyebrow">远期</p>
+<h2>节节赢 <span class="pill">比例 2 : 1</span></h2>
+<p class="desc">到期日以优惠价结汇：若到期即期 <b>高于</b> 结汇价，则结汇 2 倍本金；否则结汇 1 倍本金。优惠价优于普通远期。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="fld"><label>远期参考价</label><input id="jj_ref" type="number" step="0.0001" value="6.7766"></div>
+    <div class="fld"><label>优惠价（结汇价）</label><input id="jj_opt" type="number" step="0.0001" value="6.787"></div>
+    <div class="fld"><label>单位本金（用于补贴金额，万）</label><input id="jj_base" type="number" value="1"></div>
+    <div class="fld"><label>测算到期即期汇率（情景）</label><input id="jj_spot" type="number" step="0.0001" value="6.80"></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out hi2"><span class="k">优于远期（pips）</span><span class="v" id="jj_better">—</span></div>
+    <div class="out"><span class="k">每万美元额外收益（CNY）</span><span class="v" id="jj_extra">—</span></div>
+    <div class="out hi"><span class="k">该情景结汇本金</span><span class="v" id="jj_mult">—</span></div>
+    <div class="formula">优于远期(pips) = (优惠价 − 远期参考) × 10000<br>到期即期 > 优惠价 → 结汇 2 倍本金；否则 1 倍本金</div>
+  </div>
+</div>`;
+
+PANELS.ruyihui = `
+<p class="eyebrow">远期</p>
+<h2>如意汇 <span class="pill">分档优惠 · 6/29 起执行</span></h2>
+<p class="desc">优惠价在远期参考价基础上按期限分档补贴。<b>自 6 月 29 日起</b>：①1M–3M（含 3M）每日 2 点；②3M–6M 每日 1 点；③6M–1Y（含 6M）固定补贴 270 点。逐日档扣除 T+2 交割调整。签约上限 3000 万元、最短 1 个月、特殊款一元购均不变。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="row2">
+      <div class="fld"><label>当前日期</label><input id="ry_today" type="date" value="2026-06-29"></div>
+      <div class="fld"><label>到期日</label><input id="ry_mat" type="date" value="2026-08-31"></div>
+    </div>
+    <div class="fld"><label>远期参考价</label><input id="ry_ref" type="number" step="0.0001" value="6.7571"></div>
+    <div class="fld"><label>签约金额（万元，选填）</label><input id="ry_amt" type="number" placeholder="如 3000"><div class="hint">上限 3000 万元，超出将提示</div></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out"><span class="k">当前为周几</span><span class="v" id="ry_wd">—</span></div>
+    <div class="out"><span class="k">期限</span><span class="v" id="ry_term">—</span></div>
+    <div class="out hi2"><span class="k">适用档位</span><span class="v" id="ry_tier" style="font-size:16px">—</span></div>
+    <div class="out"><span class="k">计息天数（扣 T+2）</span><span class="v" id="ry_n">—</span></div>
+    <div class="out hi"><span class="k">如意汇优惠价</span><span class="v" id="ry_opt">—</span></div>
+    <div class="out hi2"><span class="k">补贴（元 / 点）</span><span class="v" id="ry_sub" style="font-size:18px">—</span></div>
+    <div class="note" id="ry_warn" style="display:none"></div>
+    <div class="formula">1M–3M（含3M）：补贴 = (天数 − T调整) × 0.0002<br>3M–6M：补贴 = (天数 − T调整) × 0.0001<br>6M–1Y（含6M）：补贴 = 0.0270（固定 270 点）<br>工作日(周一~周四) 扣 T+2；周五及周末顺延扣 4 天<br>优惠价 = 远期参考价 + 补贴</div>
+  </div>
+</div>`;
+
+PANELS.singlecall = `
+<p class="eyebrow">期权 / 方案</p>
+<h2>单一买权</h2>
+<p class="desc">客户买入一个看涨期权，支付期权费。期权费可按 bp（每单位本金）或绝对费率输入，自动折算为人民币金额。</p>
+<div class="cards">
+  <div class="card inputs"><h3>输入参数</h3>
+    <div class="row2">
+      <div class="fld"><label>到期日</label><input id="sc_mat" type="date" value="2026-07-03"></div>
+      <div class="fld"><label>行权价</label><input id="sc_strike" type="number" step="0.0001" value="6.83"></div>
+    </div>
+    <div class="fld"><label>本金金额（美元）</label><input id="sc_prin" type="number" value="1000000"></div>
+    <div class="fld"><label>期权费率（每单位本金，CNY）</label><input id="sc_rate" type="number" step="0.0001" value="0.0021"><div class="hint">如 0.0021 = 21 pips</div></div>
+  </div>
+  <div class="card outputs"><h3>测算结果</h3>
+    <div class="out"><span class="k">期权费率（pips）</span><span class="v" id="sc_pips">—</span></div>
+    <div class="out hi"><span class="k">期权费（人民币）</span><span class="v" id="sc_fee">—</span></div>
+    <div class="formula">期权费(CNY) = 本金 × 期权费率</div>
+  </div>
+</div>`;
+
+PANELS.eursol = `
+<p class="eyebrow">期权 / 方案</p>
+<h2>欧元方案</h2>
+<p class="desc">欧元结汇的四种结构对比，便于向客户展示不同方案的价格。可直接编辑下表的参考价格。</p>
+<div class="card" style="width:100%">
+<h3>方案对比</h3>
+<table class="ref">
+<thead><tr><th>方案</th><th>说明</th><th>到期日 / 近端</th><th>价格 1</th><th>远端 / 挂单</th><th>价格 2</th></tr></thead>
+<tbody>
+<tr><td>方式一</td><td>欧元远结</td><td><input type="date" value="2026-03-27" style="width:128px"></td><td><input value="7.9841"></td><td>—</td><td>—</td></tr>
+<tr><td>方式二</td><td>加强型即期</td><td><input type="date" value="2026-03-27" style="width:128px"></td><td><input value="8.0221"></td><td><input value="8.1" style="width:74px"> 挂单</td><td>—</td></tr>
+<tr><td>方式三</td><td>USD 远结 + 卖 EUR/USD 看涨</td><td>优惠 <input value="6.9158"></td><td>远结 <input value="6.8927"></td><td>EURUSD 挂单</td><td><input value="1.16"></td></tr>
+<tr><td>方式四</td><td>T+3 USD 结汇 + 远端卖 EUR/USD 看涨</td><td>优惠 <input value="6.9785"></td><td>—</td><td>EURUSD 挂单</td><td><input value="1.15"></td></tr>
+</tbody>
+</table>
+<div class="note"><b>说明：</b>方式三 / 四的最终欧元结汇价 ≈ USD 结汇价 × EUR/USD 行权价。本表用于方案展示与价格记录，可按当日市场更新参考价。</div>
+</div>`;
+
+/* ============ 计算函数 ============ */
+const CALC = {
+ huizengli(){
+   const r=num('hz_rate'), n=Math.max(days($('hz_start').value,$('hz_end').value),0), P=num('hz_prin'), K=num('hz_strike');
+   const ccy=$('hz_ccy').value;
+   const mode=$('hz_seg').querySelector('.on').dataset.m;
+   const premC = mode==='pips' ? P*num('hz_pips') : num('hz_amt');
+   const interest = P*n*r/360;
+   const premF = K? premC/K : 0;
+   const total = interest+premF;
+   const y = (P&&n)? total/P/n*360 : NaN;
+   $('hz_days').textContent=n;
+   $('hz_int').textContent=fmt(interest,2)+' '+ccy;
+   $('hz_premc').textContent=fmt(premC,2);
+   $('hz_premf').textContent=fmt(premF,2)+' '+ccy;
+   $('hz_total').textContent=fmt(total,2)+' '+ccy;
+   $('hz_yield').textContent=pct(y);
+ },
+ swapdep(){
+   const factor=parseFloat($('sd_pair').value), spot=num('sd_spot'), pts=num('sd_pts');
+   let fwd=num('sd_fwd'); if(!fwd) fwd=spot+pts/factor;
+   const r=num('sd_rate'), n=Math.max(days($('sd_start').value,$('sd_end').value),0), P=num('sd_prin');
+   const fp=P*spot, fi=fp*r*n/360, ft=fp+fi, final=fwd? ft/fwd:0;
+   const y=(P&&n)? (final-P)/P*360/n : NaN;
+   $('sd_ofwd').textContent=fmt(fwd, factor===100?2:4);
+   $('sd_days').textContent=n;
+   $('sd_fp').textContent=fmt(fp,2);
+   $('sd_fi').textContent=fmt(fi,2);
+   $('sd_ft').textContent=fmt(ft,2);
+   $('sd_final').textContent=fmt(final,2)+' USD';
+   $('sd_yield').textContent=pct(y);
+ },
+ swap(){
+   const near=num('sw_near'), pts=num('sw_pts');
+   let n=num('sw_days'); if(!n) n=Math.max(days($('sw_start').value,$('sw_end').value),0);
+   const far=near+pts/10000;
+   const y=(near&&n)? (-pts)/near/10000/n*360 : NaN;
+   $('sw_odays').textContent=n;
+   $('sw_far').textContent=fmt(far);
+   $('sw_yield').textContent=pct(y);
+ },
+ eswap(){
+   const near=num('es_near'), pts=num('es_pts'), sub=num('es_sub'), K=num('es_strike'), n=num('es_days'), P=num('es_prin');
+   const opt=near+sub/10000, far=near+pts/10000;
+   const swy=(near&&n)? (-pts)/near/10000/n*360:NaN;
+   const opy=(K&&n)? sub/10000/K/n*360:NaN;
+   const mx=swy+opy;
+   const p1=P*(opt-far), p1y=(near&&n)? p1/(P*near)/n*360:NaN;
+   const p2=P*(opt-near), p2y=(near&&n)? p2/(P*near)/n*360:NaN;
+   $('es_opt').textContent=fmt(opt); $('es_far').textContent=fmt(far);
+   $('es_swy').textContent=pct(swy); $('es_opy').textContent=pct(opy); $('es_max').textContent=pct(mx);
+   $('es_p1').textContent=fmt(p1,2)+' CNY'; $('es_p1y').textContent=pct(p1y);
+   $('es_p2').textContent=fmt(p2,2)+' CNY'; $('es_p2y').textContent=pct(p2y);
+ },
+ eforward(){
+   const ref=num('ef_ref'); const mode=$('ef_seg').querySelector('.on').dataset.m;
+   const add = mode==='price'? num('ef_add') : num('ef_pips')/10000;
+   const opt=ref+add, better=(opt-ref)*10000;
+   const far=num('ef_far'), p1=num('ef_p1'), p2=num('ef_p2');
+   $('ef_opt').textContent=fmt(opt); $('ef_better').textContent=fmt(better,1);
+   $('ef_d1').textContent=fmt(p1,0); $('ef_d2').textContent=fmt(far); $('ef_d3').textContent=fmt(p2,0);
+ },
+ espot(){
+   const spot=num('sp_spot'), pips=num('sp_pips'), base=num('sp_base');
+   const opt=spot+pips/10000, amt=base*pips;
+   $('sp_opt').textContent=fmt(opt); $('sp_better').textContent=fmt(pips,0);
+   $('sp_amt').textContent=fmt(amt,0)+' CNY';
+ },
+ rangefwd(){
+   const low=num('rg_low'), high=num('rg_high'), ref=num('rg_ref'), spot=num('rg_spot');
+   const width=(high-low)*10000;
+   let pos='区间内'; if(ref<low)pos='低于下限'; else if(ref>high)pos='高于上限';
+   const settle=Math.min(Math.max(spot,low),high);
+   $('rg_width').textContent=fmt(width,0); $('rg_pos').textContent=pos;
+   $('rg_settle').textContent=fmt(settle);
+ },
+ dccfwd(){
+   const ref=num('dc_ref'), pts=num('dc_pts'), K=num('dc_strike');
+   const raw=ref+pts*ref/K/10000;
+   const opt=Math.floor(raw*10000)/10000;
+   const better=(opt-ref)*10000;
+   $('dc_opt').textContent=fmt(opt); $('dc_better').textContent=fmt(better,1);
+ },
+ jiejieying(){
+   const ref=num('jj_ref'), opt=num('jj_opt'), base=num('jj_base')*10000, spot=num('jj_spot');
+   const better=(opt-ref)*10000;
+   const mult = spot>opt? '2 倍本金' : '1 倍本金';
+   $('jj_better').textContent=fmt(better,1);
+   $('jj_extra').textContent=fmt((opt-ref)*base,2)+' CNY';
+   $('jj_mult').textContent=mult;
+ },
+ ruyihui(){
+   const t=$('ry_today').value, mat=$('ry_mat').value, ref=num('ry_ref');
+   const wd=weekday(t); const totalDays=days(t,mat);
+   const adj = wd<5 ? 2 : 4;
+   const n=totalDays-adj;
+   // 计算完整月数及是否有零头天数
+   const d1=parseLocal(t), d2=parseLocal(mat);
+   let mo=0, hasExtra=false;
+   if(d1&&d2){
+     mo=(d2.getFullYear()-d1.getFullYear())*12+(d2.getMonth()-d1.getMonth());
+     const anchor=new Date(d1.getFullYear(),d1.getMonth()+mo,d1.getDate());
+     if(anchor>d2){ mo-=1; }
+     const anchor2=new Date(d1.getFullYear(),d1.getMonth()+mo,d1.getDate());
+     hasExtra = d2>anchor2;
+   }
+   // 档位判定：3M及以内→每日2点；3M~6M→每日1点；6M及以上→固定270点
+   let tier, rate=0, fixed=false, sub;
+   const over3 = (mo>3) || (mo===3 && hasExtra);     // 严格大于3个月
+   const atLeast6 = (mo>=6);                          // 6个月及以上
+   if(atLeast6){ tier='6M–1Y · 固定 270 点'; fixed=true; sub=0.0270; }
+   else if(over3){ tier='3M–6M · 每日 1 点'; rate=0.0001; sub=n*rate; }
+   else { tier='1M–3M · 每日 2 点'; rate=0.0002; sub=n*rate; }
+   const opt=ref+sub;
+   const wdName=['','周日','周一','周二','周三','周四','周五','周六'][wd]||'—';
+   // 期限文字
+   let termTxt = mo+' 个月'+(hasExtra?' 余':'')+'（约 '+totalDays+' 天）';
+   $('ry_wd').textContent=wdName;
+   $('ry_term').textContent=termTxt;
+   $('ry_tier').textContent=tier;
+   $('ry_n').textContent= fixed? '— （固定补贴，不逐日）' : n+' 天';
+   $('ry_opt').textContent=fmt(opt);
+   $('ry_sub').textContent=fmt(sub,4)+'  ( '+fmt(sub*10000,0)+' 点 )';
+   // 提示
+   const warns=[];
+   if(mo<1) warns.push('期限低于最短签约期限 1 个月，请核对。');
+   if(mo>12 || (mo===12&&hasExtra)) warns.push('期限超过 1 年上限，请核对。');
+   const amt=num('ry_amt');
+   if(amt>3000) warns.push('签约金额 '+fmt(amt,0)+' 万元 已超过 3000 万元上限。');
+   const w=$('ry_warn');
+   if(warns.length){ w.style.display='block'; w.innerHTML='⚠️ '+warns.join('<br>⚠️ '); }
+   else { w.style.display='none'; w.innerHTML=''; }
+ },
+ singlecall(){
+   const P=num('sc_prin'), rate=num('sc_rate');
+   $('sc_pips').textContent=fmt(rate*10000,1);
+   $('sc_fee').textContent=fmt(P*rate,2)+' CNY';
+ },
+ eursol(){},
+};
+
+/* ============ 模式切换 ============ */
+function hzMode(m){ const seg=$('hz_seg'); seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('hz_pipsbox').style.display=m==='pips'?'block':'none'; $('hz_amtbox').style.display=m==='amt'?'block':'none'; run(); }
+function efMode(m){ const seg=$('ef_seg'); seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  $('ef_pricebox').style.display=m==='price'?'block':'none'; $('ef_pipsbox').style.display=m==='pips'?'block':'none'; run(); }
+function sdPip(){ run(); }
+
+/* ============ 渲染与绑定 ============ */
+let current='huizengli';
+function buildNav(){
+  const nav=$('nav'); let h='';
+  PRODUCTS.forEach(g=>{ h+=`<div class="grp">${g.grp}</div>`;
+    g.items.forEach(it=> h+=`<button data-id="${it.id}" onclick="select('${it.id}')">${it.name}</button>`); });
+  nav.innerHTML=h;
+  const main=$('main');
+  main.innerHTML=Object.keys(PANELS).map(k=>`<div class="panel" id="p_${k}">${PANELS[k]}</div>`).join('');
+}
+function select(id){
+  current=id;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.id===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='p_'+id));
+  window.scrollTo({top:0,behavior:'smooth'});
+  run();
+}
+function run(){ if(CALC[current]) try{CALC[current]();}catch(e){console.warn(e);} }
+document.addEventListener('input',run);
+buildNav();
+select('huizengli');
+</script>
+</body>
+</html>
